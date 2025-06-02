@@ -1,16 +1,39 @@
-import streamlit as st
-import pandas as pd
-import numpy as np
-import datetime
-import re
-import requests
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException
-from selenium.webdriver.chrome.options import Options
-
+def get_chrome_driver():
+    """Configure Chrome driver for cloud deployment"""
+    chrome_options = Options()
+    
+    # Essential options for cloud deployment
+    chrome_options.add_argument("--headless")
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+    chrome_options.add_argument("--disable-gpu")
+    chrome_options.add_argument("--window-size=1920,1080")
+    chrome_options.add_argument("--remote-debugging-port=9222")
+    chrome_options.add_argument("--disable-extensions")
+    chrome_options.add_argument("--disable-plugins")
+    chrome_options.add_argument("--disable-images")
+    chrome_options.add_argument("--disable-javascript")
+    chrome_options.add_argument("--user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36")
+    
+    # Try to use system chromium first, then fall back to webdriver-manager
+    try:
+        # For Streamlit Cloud and similar platforms
+        chrome_options.binary_location = "/usr/bin/chromium"
+        driver = webdriver.Chrome(options=chrome_options)
+        return driver
+    except:
+        try:
+            # Fallback using webdriver-manager
+            from webdriver_manager.chrome import ChromeDriverManager
+            from selenium.webdriver.chrome.service import Service
+            
+            service = Service(ChromeDriverManager().install())
+            driver = webdriver.Chrome(service=service, options=chrome_options)
+            return driver
+        except:
+            # Last resort - try default
+            driver = webdriver.Chrome(options=chrome_options)
+            return driver
 # Configure the page
 st.set_page_config(
     page_title="Recent Data Breaches",
@@ -23,7 +46,7 @@ st.title("Recently Reported Data Breaches")
 
 # Maine breach function
 def maine_breach_table():
-    driver = webdriver.Chrome()
+    driver = get_chrome_driver()
     driver.get('https://www.maine.gov/agviewer/content/ag/985235c7-cb95-4be2-8792-a1252b4f8318/list.html')
     urls = []
     df_list = []
@@ -70,7 +93,7 @@ def maine_breach_table():
 
 # Texas breach function
 def breach_report_tx():
-    driver = webdriver.Chrome()
+    driver = get_chrome_driver()
     driver.get('https://oag.my.site.com/datasecuritybreachreport/apex/DataSecurityReportsPage')
     
     try:
@@ -107,7 +130,7 @@ def breach_report_tx():
 
 # Hawaii Table
 def hawaii_db():
-    driver = webdriver.Chrome()
+    driver = get_chrome_driver()
     driver.get(
     "https://cca.hawaii.gov/ocp/notices/security-breach/#:~:text=Any%20business%20or%20government%20agency,2%28f%29%2C%20Hawaii%20Revised%20Statutes")
     df = pd.read_html(driver.page_source)[0]
@@ -115,7 +138,7 @@ def hawaii_db():
     return df
 
 def washington_db():
-    driver = webdriver.Chrome()
+    driver = get_chrome_driver()
     driver.get("https://www.atg.wa.gov/data-breach-notifications")
     df = pd.read_html(driver.page_source)[0]
     driver.quit()
